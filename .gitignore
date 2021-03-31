@@ -1,0 +1,8 @@
+./metadata
+**/*.class
+**/bin
+**/.vscode
+**/README.md
+**/*.zip
+**/.classpath
+**/.project
