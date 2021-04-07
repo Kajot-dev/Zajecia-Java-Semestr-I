@@ -4,6 +4,7 @@ public class Temat6 {
 
     private static final Scanner cin = new Scanner(System.in);
     private static final String FORMAT_HELPER = "Para (%s, %s) -> %s + %s = %s, K: %s";
+    private static final boolean LOG = true;
 
     private static int getInt(String komunikat) {
         komunikat += ": ";
@@ -11,11 +12,10 @@ public class Temat6 {
         while (true) {
             try {
                 System.out.print(komunikat);
-                x = cin.nextInt();
+                x = Integer.parseInt(cin.nextLine());
                 break;
-            } catch (InputMismatchException e) {
+            } catch (NumberFormatException e) {
                 System.out.println("Podano nieprawidlowa liczbe!");
-                cin.nextLine(); //odrzuc nieprawidlowy wpis
             }
         }
         return x;
@@ -35,17 +35,17 @@ public class Temat6 {
         return sum;
     }
 
-    private static int pary(int[] myArray, int k, boolean log) {
-        int sum = 0;
+    private static int pary(int[] myArray, int k) {
+        int licznik = 0;
         for (int i = 0; i < myArray.length-1; i++) {
             for (int j = i+1; j < myArray.length; j++) {
         
                 int suma = myArray[i] + myArray[j];
 
                 if (suma % k == 0) {
-                    sum++; //tutaj sumowanie
+                    licznik++; //tutaj liczenie
 
-                    if (log) { //opcjonalne wypisywanie
+                    if (LOG) { //opcjonalne wypisywanie
                         System.out.println(String.format(FORMAT_HELPER, i, j, myArray[i], myArray[j], suma, k));
                     }
 
@@ -53,7 +53,7 @@ public class Temat6 {
                 
             }
         }
-        return sum;
+        return licznik;
     }
 
     public static void main(String[] args) {
@@ -79,7 +79,7 @@ public class Temat6 {
         System.out.println("Suma: " + suma(tab));
 
         //PARY
-        int p = pary(tab, dzielnik, true);
+        int p = pary(tab, dzielnik);
         System.out.println("Liczba par: " + p);
     }
 }
