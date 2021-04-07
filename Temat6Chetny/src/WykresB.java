@@ -59,15 +59,15 @@ public class WykresB {
         //Wybieramy najwyzszy slupek
         final int maxWys = Arrays.stream(wysokosci).max().getAsInt();
 
-        //Tworzymy podstawe do uzywania (domyslnie) "+-+"
-        final String podstawa = "" + CORNER + HORIZONTAL_LINE + CORNER; 
-        final String srodek = "" + VERTICAL_LINE + WHITESPACE + VERTICAL_LINE;
-        final String linia = "" + HORIZONTAL_LINE + HORIZONTAL_LINE;
-        final String przerwa = "" + WHITESPACE + WHITESPACE;
-        final String pustak = przerwa + WHITESPACE;
+        //Tworzymy Stringi do uzywania
+        final String podstawa = "" + CORNER + HORIZONTAL_LINE + CORNER; //domyslnie "+-+"
+        final String srodek = "" + VERTICAL_LINE + WHITESPACE + VERTICAL_LINE; //domyslnie "| |"
+        final String linia = "" + HORIZONTAL_LINE + HORIZONTAL_LINE; //domyslnie "--"
+        final String przerwa = "" + WHITESPACE + WHITESPACE; //domyslnie "  "
+        final String pustak = przerwa + WHITESPACE; //domyslnie "   "
         // "" na poczatku jest po to, zeby Java potraktowala dodawanie jako tekst, a nie jako dodawanie liczb
 
-        //Tworzymy pierwsza wartwe, zawsze jest taka sama
+        //Tworzymy pierwsza wartwe, zawsze jest taka sama "--+-+...
         sb.append(linia)
         .append(podstawa)
         .append(linia)
@@ -76,13 +76,22 @@ public class WykresB {
         .append(podstawa)
         .append(linia);
 
+        //petla powtarza tyle razy ile ma najwyzszy slupek + wieczko (1) - dlatego jest <=
         for (int i = 0; i <= maxWys; i++) {
-            sb.append('\n').append(przerwa);
 
+            //zaczynamy od nowej lini i rysujemy lewy margines
+            sb.append('\n').append(przerwa); //od lewej
+
+            //slupki, w to wysokosc danego slupka
             for (int w : wysokosci) {
+
+                //jezeli i < od wysokosci slupka to znaczy, ze mamy srodek slupka do narysowania
                 if (i < w) sb.append(srodek);
+                //jezeli i jest rowne wysokosci slupka to trzeba narysowac wieczko (UWAGA slupki o wysokosci zero nie posiadaja wieczka)
                 else if (i == w && w != 0) sb.append(podstawa);
+                //jezeli slupek juz sie skonczyl rysujemy spacje
                 else sb.append(pustak);
+                //dorysowujemy spacje po prawej
                 sb.append(przerwa);
             }
         }
