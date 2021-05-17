@@ -30,8 +30,16 @@ public class Playlista {
         this.utwory.remove(numer - 1);
     }
 
-    public void sort() {
-        Collections.sort(this.utwory);
+    public void sortujPoTytule() {
+        Collections.sort(this.utwory, Utwor.compPoTytule);
+    }
+
+    public void sortujPoWykonawcy() {
+        Collections.sort(this.utwory, Utwor.compPoAutorze);
+    }
+
+    public void sortujPoRoku() {
+        Collections.sort(this.utwory, Utwor.compPoRoku);
     }
 
     public int size() {

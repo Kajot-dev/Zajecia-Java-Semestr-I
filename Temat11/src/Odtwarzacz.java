@@ -17,6 +17,11 @@ public class Odtwarzacz {
         "Posortuj playliste",
         "Wylacz odtwarzacz" 
     };
+    private static final String[] SORT_OPTS = new String[] {
+        "Posortuj po tytule",
+        "Posortuj po wykonawcach",
+        "Posortuj po roku wydania"
+    };
     private static final String EMPTY_PLAYLIST = "Ta playlista jest pusta!";
     private static final String NO_LISTS = "Nie ma juz zadnych playlist, sprobuj jakas dodac!";
 
@@ -59,7 +64,7 @@ public class Odtwarzacz {
             Utwor u;
             switch (choice) {
                 case 1: //wyswietl
-                    p1 = choosePlaylista();
+                    p1 = this.choosePlaylista();
                     if (!this.sprawdz(p1)) break; 
                     p1.print();
                     break;
@@ -124,7 +129,22 @@ public class Odtwarzacz {
                 case 8:
                     p1 = choosePlaylista();
                     if (!this.sprawdz(p1)) break;
-                    p1.sort();
+                    System.out.println("Wybierz opcje:");
+                    printOptions(Odtwarzacz.SORT_OPTS);
+                    int c2 = askInt(1, Odtwarzacz.SORT_OPTS.length);
+                    switch (c2) {
+                        case 1:
+                            p1.sortujPoTytule();
+                            break;
+                        case 2:
+                            p1.sortujPoWykonawcy();
+                            break;
+                        case 3:
+                            p1.sortujPoRoku();
+                            break;
+                        default:
+                            break;
+                    }
                     break;
                 case 9:
                     jestWlaczony = false;

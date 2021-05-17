@@ -1,9 +1,22 @@
+import java.util.Comparator;
+
 public class Utwor implements Comparable<Utwor> {
     private String tytul;
     private String[] wykonawcy;
     private int rokWydania;
+    
+    //komparatory
+    protected static final Comparator<Utwor> compPoAutorze = Comparator.comparing(Utwor::getWykonawcyJoined)
+    .thenComparing(Utwor::getTytul)
+    .thenComparing(Utwor::getRokWydania);
+    protected static final Comparator<Utwor> compPoTytule = Comparator.comparing(Utwor::getTytul)
+    .thenComparing(Utwor::getWykonawcyJoined)
+    .thenComparing(Utwor::getRokWydania);
+    protected static final Comparator<Utwor> compPoRoku = Comparator.comparing(Utwor::getRokWydania)
+    .thenComparing(Utwor::getTytul)
+    .thenComparing(Utwor::getWykonawcyJoined);
 
-    public Utwor(String tytul, String[] wykonawcy, int rokWydania) {
+    public Utwor(String tytul, String[] wykonawcy, int rokWydania) throws IllegalArgumentException {
         this.tytul = tytul;
         this.wykonawcy = wykonawcy;
         if (rokWydania < 0) throw new IllegalArgumentException("Rok wydania nie moze byc ujemny!");
@@ -22,6 +35,10 @@ public class Utwor implements Comparable<Utwor> {
         return wykonawcy;
     }
 
+    private String getWykonawcyJoined() {
+        return String.join("", this.wykonawcy);
+    }
+
     public int getRokWydania() {
         return rokWydania;
     }
@@ -31,7 +48,7 @@ public class Utwor implements Comparable<Utwor> {
     }
 
     public int compareTo(Utwor u) {
-        return this.getTytul().compareTo(u.getTytul());
+        return Utwor.compPoTytule.compare(this, u);
     }
 
 }
