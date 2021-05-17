@@ -1,4 +1,4 @@
-import java.util.Comparator;
+import java.util.*;
 
 public class Utwor implements Comparable<Utwor> {
     private String tytul;
@@ -47,8 +47,26 @@ public class Utwor implements Comparable<Utwor> {
         return this.tytul + " (" + String.join(", ", this.wykonawcy) + ") " + "[" + this.rokWydania + "]";
     }
 
+    @Override
     public int compareTo(Utwor u) {
         return Utwor.compPoTytule.compare(this, u);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+
+        if (o == this) return true;
+  
+        if (!(o instanceof Utwor)) return false;
+          
+        Utwor u = (Utwor) o;
+          
+        return this.compareTo(u) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.tytul, Objects.hash((Object[]) this.wykonawcy), this.rokWydania);
     }
 
 }
