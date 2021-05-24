@@ -204,7 +204,7 @@ public class Odtwarzacz {
         for (i = 0; i < options.length; i++) {
             sb.append("\t(").append(i + 1).append(") ").append(options[i]).append('\n');
         }
-        if (cancel) sb.append("\t(").append(i + 1).append(") ").append("ANULUJ").append('\n');
+        if (cancel) sb.append("\t(").append(i + 1).append(") ").append("\u001B[35mANULUJ\u001B[0m").append('\n');
         System.out.print(sb.toString());
     }
 
@@ -214,10 +214,13 @@ public class Odtwarzacz {
         while (true) {
             System.out.print(k);
             x = cin.nextLine().trim().split(",");
-            x = Arrays.asList(x).stream().map(String::trim).collect(Collectors.toList()).toArray(x);
-            if (x.length > 0)
-                break;
-            System.out.println("Nie mozna podac pustej odpowiedzi!");
+            List<String> temp = Arrays.asList(x);
+            if (temp.stream().noneMatch(String::isBlank)) {
+                x = temp.stream().map(String::trim).collect(Collectors.toList()).toArray(x);
+                if (x.length > 0)
+                    break;
+            }
+            Odtwarzacz.printYellow("Zadna z podanych odpowiedzi nie moze byc pusta!");
         }
         return x;
     }
@@ -230,7 +233,7 @@ public class Odtwarzacz {
             x = cin.nextLine().trim();
             if (!x.isEmpty())
                 break;
-            System.out.println("Nie mozna podac pustej odpowiedzi!");
+            Odtwarzacz.printYellow("Nie mozna podac pustej odpowiedzi!");
         }
         return x;
     }
@@ -251,7 +254,7 @@ public class Odtwarzacz {
             } catch (NumberFormatException e) {
                 // do nothing
             }
-            System.out.println("Podano nieprawidlowa liczbe, musi byc z zakresu " + min + '-' + max + '.');
+            Odtwarzacz.printYellow("Podano nieprawidlowa liczbe, musi byc z zakresu " + min + '-' + max + '.');
         }
         return x;
     }
