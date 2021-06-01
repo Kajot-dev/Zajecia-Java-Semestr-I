@@ -118,9 +118,13 @@ public class Odtwarzacz {
         final String tytul = askString("Podaj tytul utworu");
         final String[] wykonawcy = askStrings("Podaj wykonawcow rodzielonych przecinkiem");
         final int rok = askInt(0, 10000, "Podaj rok wykonania");
-        Utwor u = new Utwor(tytul, wykonawcy, rok);
-        p1.addUtwory(u);
-        Odtwarzacz.printGreen("Dodano utwor " + u.toString() + INTO_PLAYLIST + p1.getNazwa());
+        try {
+            Utwor u = new Utwor(tytul, wykonawcy, rok);
+            p1.addUtwory(u);
+            Odtwarzacz.printGreen("Dodano utwor " + u.toString() + INTO_PLAYLIST + p1.getNazwa());
+        } catch (IllegalArgumentException e) {
+            Odtwarzacz.printYellow(e.getMessage());
+        }
     }
 
     private void przeniesUtwor() throws NoPlaylistException, UserAbortedException, EmptyPlaylistException {
