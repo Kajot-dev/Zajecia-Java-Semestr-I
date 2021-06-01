@@ -4,6 +4,7 @@ public class Calculator {
     private Carpet carpet;
 
     public Calculator(Floor floor, Carpet carpet) {
+        //inicjalizujemy pola
         this.floor = floor;
         this.carpet = carpet;
     }

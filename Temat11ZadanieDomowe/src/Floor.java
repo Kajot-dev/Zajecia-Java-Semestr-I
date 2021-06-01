@@ -4,6 +4,7 @@ public class Floor {
     private double height;
 
     public Floor() {
+        //dopisek d czyni numery typem double
         this(0d, 0d);
     }
 
@@ -17,6 +18,10 @@ public class Floor {
     }
 
     public void setWidth(double width) {
+        /**
+         * skrócone if, else
+         * WARUNEK ? RZECZ, JEŻELI SPEŁNIONY : RZECZ, JEŻELI NIE JEST SPEŁNIONY
+         */
         this.width = width >= 0 ? width : 0d;
     }
 
@@ -25,6 +30,10 @@ public class Floor {
     }
 
     public void setHeight(double height) {
+        /**
+         * skrócone if, else
+         * WARUNEK ? RZECZ, JEŻELI SPEŁNIONY : RZECZ, JEŻELI NIE JEST SPEŁNIONY
+         */
         this.height = height >= 0 ? height : 0d;
     }
 
