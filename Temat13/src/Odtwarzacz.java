@@ -5,9 +5,13 @@ import java.nio.file.Files;
 
 public class Odtwarzacz {
 
+    //skaner sluzacy do wprowadzania elementow
     private static final Scanner cin = new Scanner(System.in);
+    //mapa do przechowywania playlist
     private final HashMap<String, Playlista> playlisty = new HashMap<>();
     private boolean jestWlaczony = false;
+
+    //nazwy opcji, zeby nie musiec wczesniej wpisywac
     private static final String[] MAIN_OPTS = new String[] { "Wyswietl playliste", "Utworz playliste", "Usun playliste",
             "Dodaj nowy utwor", "Przenies utwor", "Skopiuj utwor", "Skasuj utwor", "Posortuj playliste",
             "Zapisz playliste do pliku", "Wczytaj playliste z pliku", "Usun plik z playlista", "Wylacz odtwarzacz" 
@@ -16,15 +20,23 @@ public class Odtwarzacz {
             "Posortuj po roku wydania" };
     private static final String INTO_PLAYLIST = " do playlisty ";
     private static final String[] BOOL_ANS = new String[] { "TAK", "NIE" };
+
+    //folder do zapisywania playlist
     private static final File SAVE_DIR = new File("zapisane_playlisty");
 
     public static void main(String[] args) {
+
+        //jezeli folder nie istnieje, utworz go
         if (!SAVE_DIR.exists()) SAVE_DIR.mkdir();
+
+        //uruchom nowy odtwarzacz
         Odtwarzacz o = new Odtwarzacz();
         o.wlacz();
     }
 
     public Odtwarzacz() {
+
+        //utworz startow playlisty
         this.dodajPlayliste(new Playlista("Rap", new Utwor("Drunk", "TheLivingTombstone", 2020),
                 new Utwor("Paper", "2Scratch", 2019), new Utwor("Venom", "Eminem", 2018),
                 new Utwor("Demony", "Dziarma", 2019)));
@@ -34,15 +46,21 @@ public class Odtwarzacz {
     }
 
     public void wlacz() {
+        //wyswietl menu glowne
         if (!jestWlaczony)
             this.mainMenu();
     }
 
     private void mainMenu() {
+
         this.jestWlaczony = true;
         while (jestWlaczony) {
+
+            //wypisz opcje
             System.out.println("Wybierz opcje:");
-            printOptions(Odtwarzacz.MAIN_OPTS);
+            printOptions(Odtwarzacz.MAIN_OPTS); //tu uzywam opcji zapisanych wyzej
+
+            //zapytaj uzytkownika o opcje od 1 do ilosci opcji
             int choice = askInt(1, Odtwarzacz.MAIN_OPTS.length);
             try {
                 switch (choice) {
@@ -86,54 +104,81 @@ public class Odtwarzacz {
                         break;
                 }
             } catch (NoPlaylistException|UserAbortedException|EmptyPlaylistException e) {
-                //do nothing
+
+                //wszystko ok, wypisz z jakiego powodu operacja sie nie udala
+                Odtwarzacz.printYellow(e.getMessage());
             }
+            //wypisz pusta linijke
             System.out.println();
         }
         System.exit(0);
 
     }
 
-    // funkcje z CLI
+    //funkcje z CLI - Command Line Interface - te uzywajace konsoli
 
     private void wyswieltPlayliste() throws NoPlaylistException, UserAbortedException {
-        Playlista p1 = this.wybierzPlayliste();
+        //wybierz playliste i ja wyswietl
+        final Playlista p1 = this.wybierzPlayliste();
         p1.print();
     }
 
     private void dodajNowaPlayliste() {
-        final String nazwa = askString("Podaj nazwe nowej playlisty");
+        //zapytaj o nazwe playlisty, a nastepnie utworz pusta o takiej nazwie
+        final String nazwa = Odtwarzacz.askString("Podaj nazwe nowej playlisty");
         this.dodajPlayliste(new Playlista(nazwa));
     }
 
     private void usunPlayliste() throws NoPlaylistException, UserAbortedException {
+        //wybierz playliste z dostepnych
         Playlista p1 = this.wybierzPlayliste();
+
+        //zapisuje nazwe playlisty, zeby ja miec po usunieciu samej playlisty
         final String nazwaPlaylisty = p1.getNazwa();
+
+        //usun playliste po nazwie z mapy i wypisz komunikat, poniewaz zachowales nazwe
         this.playlisty.remove(nazwaPlaylisty);
         Odtwarzacz.printGreen("Usunieto playliste " + nazwaPlaylisty + "!");
     }
 
     private void dodajUtwor() throws NoPlaylistException, UserAbortedException {
+        //wybierz nowa playliste
         Playlista p1 = wybierzPlayliste();
+
+        //zapytaj o odpowiednie rzeczy do utowru
         final String tytul = askString("Podaj tytul utworu");
         final String[] wykonawcy = askStrings("Podaj wykonawcow rodzielonych przecinkiem");
         final int rok = askInt(0, 10000, "Podaj rok wykonania");
+
+        //uzywamy try, poniewaz konstruktor Utworu odrzuci niepoprawne dane
         try {
+
             Utwor u = new Utwor(tytul, wykonawcy, rok);
+
+            //dodaj utwor do playlisty i wypisz komunikat
             p1.addUtwory(u);
             Odtwarzacz.printGreen("Dodano utwor " + u.toString() + INTO_PLAYLIST + p1.getNazwa());
         } catch (IllegalArgumentException e) {
+
+            //wypisujemy co bylo nie tak z danymi
             Odtwarzacz.printYellow(e.getMessage());
         }
     }
 
     private void przeniesUtwor() throws NoPlaylistException, UserAbortedException, EmptyPlaylistException {
+        //wybierz playliste nr 1
         System.out.println("Podaj, z ktorej playlisty chcesz przeniesc");
         Playlista p1 = this.wybierzPlayliste();
+
+        //wybierz utwor z playlisty
         int nrUtworu = p1.wybierzIndeksUtworu();
         Utwor u = p1.getUtwor(nrUtworu);
+
+        //wybierz playliste nr 2 (jako argument podajemy p1, zeby nie dalo sie przeniesc do tej samej)
         System.out.println("Podaj playliste docelowa");
         Playlista p2 = this.wybierzPlayliste(p1);
+
+        //przenies utwor i wyswietl komuniakt
         p1.removeUtwor(nrUtworu);
         p2.addUtwory(u);
         Odtwarzacz.printGreen("Przeniesiono utwor " + u.toString() + " z playlisty " + p1.getNazwa() + INTO_PLAYLIST
@@ -141,12 +186,19 @@ public class Odtwarzacz {
     }
 
     private void skopiujUtwor() throws NoPlaylistException, UserAbortedException, EmptyPlaylistException {
+        //wybierz playliste nr 1
         System.out.println("Podaj, z ktorej playlisty chcesz skopiowac");
         Playlista p1 = wybierzPlayliste();
+
+        //wybierz utwor z playlisty
         int nr = p1.wybierzIndeksUtworu();
         Utwor u = p1.getUtwor(nr);
+
+        //wybierz playliste nr 2 (jako argument podajemy p1, zeby nie dalo sie przeniesc do tej samej)
         System.out.println("Podaj playliste docelowa");
         Playlista p2 = this.wybierzPlayliste(p1);
+
+        //skopiuj utwor
         p2.addUtwory(u);
         Odtwarzacz.printGreen("Skopiowano utwor " + u.toString() + " z playlisty " + p1.getNazwa() + INTO_PLAYLIST
         + p2.getNazwa() + "!");
@@ -154,19 +206,31 @@ public class Odtwarzacz {
 
 
     private void usunUtwor() throws NoPlaylistException, UserAbortedException, EmptyPlaylistException {
+        //wybierz playliste
         Playlista p1 = wybierzPlayliste();
+
+        //wybierz utwor z playlisty
         int nr = p1.wybierzIndeksUtworu();
         Utwor u = p1.getUtwor(nr);
+
+        //usun utwor
         p1.removeUtwor(nr);
         Odtwarzacz.printGreen("Usunieto utwor " + u.toString());
     }
 
     private void posortujPlayliste() throws NoPlaylistException, UserAbortedException {
-        Playlista p1 = wybierzPlayliste();
+        //wybierz playliste
+        Playlista p1 = this.wybierzPlayliste();
+
+        //wyswietl dostepne opcje
         System.out.println("Wybierz opcje:");
-        printOptions(Odtwarzacz.SORT_OPTS);
-        int c2 = askInt(1, Odtwarzacz.SORT_OPTS.length);
-        switch (c2) {
+        Odtwarzacz.printOptions(Odtwarzacz.SORT_OPTS);
+
+        //wybierz opcje
+        int wybor = Odtwarzacz.askInt(1, Odtwarzacz.SORT_OPTS.length);
+
+        //wykonaj odpowiednia opcje
+        switch (wybor) {
             case 1:
                 p1.sortujPoTytule();
                 break;
@@ -182,16 +246,7 @@ public class Odtwarzacz {
         Odtwarzacz.printGreen("Posortowano playliste " + p1.getNazwa());
     }
 
-    private void dodajPlayliste(Playlista p) {
-        String nazwa = p.getNazwa();
-        if (this.playlisty.containsKey(nazwa)) {
-            Odtwarzacz.printYellow("Nie może być dwóch playlist o tej samej nazwie!");
-        } else {
-            this.playlisty.put(nazwa, p);
-            Odtwarzacz.printGreen("Utworzono playliste " + nazwa + "!");
-        }
-            
-    }
+    
 
     private void zapiszPlayliste() throws NoPlaylistException, UserAbortedException {
         Playlista p1 = this.wybierzPlayliste();
@@ -249,6 +304,17 @@ public class Odtwarzacz {
     }
 
     //Narzedzia
+
+    private void dodajPlayliste(Playlista p) {
+        String nazwa = p.getNazwa();
+        if (this.playlisty.containsKey(nazwa)) {
+            Odtwarzacz.printYellow("Nie może być dwóch playlist o tej samej nazwie!");
+        } else {
+            this.playlisty.put(nazwa, p);
+            Odtwarzacz.printGreen("Utworzono playliste " + nazwa + "!");
+        }
+            
+    }
 
     private Playlista wybierzPlayliste(Playlista... exceptions) throws NoPlaylistException, UserAbortedException {
         List<Playlista> opts = new ArrayList<>(this.playlisty.values()); // kopiujemy
