@@ -22,10 +22,10 @@ public class Dlugi {
                 String[] dane = linia.split(";");
                 dodajKraj(dane);                
             }
-            Dlugi.uruchom();
         } catch (IOException e) {
             System.err.println("Blad odczytu pliku!");
         }
+        Dlugi.uruchom();
     }
 
     public static void dodajKraj(String[] dane) {
