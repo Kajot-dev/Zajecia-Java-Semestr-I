@@ -27,7 +27,7 @@ public class Wydzial {
 
     public void skresl(Student uczen) {
         if (!this.studenci.contains(uczen)) {
-            System.out.println(uczen.toString() + " nie studiuje na wydziale " + this.nazwa);
+            System.out.println(uczen + " nie studiuje na wydziale " + this.nazwa);
         } else if (uczen == null) {
             System.out.println("Nie mozna opisac pustego obiektu!");
         } else {
