@@ -55,16 +55,22 @@ public class Playlist {
         this.songs.remove(index);
     }
 
-    public void sortByTitle() {
-        this.songs.sort(Song.compByTitle);
+    public void sortByTitle(boolean reverse) {
+        var comp = Song.compByTitle;
+        if (reverse) comp = comp.reversed();
+        this.songs.sort(comp);
     }
 
-    public void sortByAuthors() {
-        this.songs.sort(Song.compByAuthor);
+    public void sortByAuthors(boolean reverse) {
+        var comp = Song.compByAuthor;
+        if (reverse) comp = comp.reversed();
+        this.songs.sort(comp);
     }
 
-    public void sortByYear() {
-        this.songs.sort(Song.compByYear);
+    public void sortByYear(boolean reverse) {
+        var comp = Song.compByYear;
+        if (reverse) comp = comp.reversed();
+        this.songs.sort(comp);
     }
 
     public int size() {
@@ -100,7 +106,7 @@ public class Playlist {
 
     protected void serialise(Writer w) throws IOException {
         for (Song u : this.songs) {
-            w.write(u.serialise());
+            w.write(u.serialise() + '\n');
         }
     }
 

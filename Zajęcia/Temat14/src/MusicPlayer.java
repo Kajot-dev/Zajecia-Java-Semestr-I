@@ -37,6 +37,7 @@ public class MusicPlayer {
     private Thread currentThread = null;
     private Player currentPlayer = null;
     private File currentFile = null;
+    private boolean isPlaying = false;
 
     static {
         if (!SAVE_DIR.exists() && !SAVE_DIR.mkdir()) {
@@ -63,9 +64,40 @@ public class MusicPlayer {
     public MusicPlayer() {
         var self = this;
 
-        this.options.defineOption("Show playlist", new Option() {
+        this.options.defineOption("Play a song", new Option() {
             @Override
             public void run() throws NoPlaylistException, EmptyPlaylistException, UserAbortedException {
+                var p1 = self.choosePlaylist();
+                int i = p1.chooseSongIndex();
+                var u = p1.getSong(i);
+                self.play(u);
+            }
+
+            @Override
+            public boolean accept() {
+                return !self.playlists.isEmpty() && self.playlists.values().stream().anyMatch(Playlist::hasSongs);
+            }
+        });
+
+        this.options.defineOption("Stop playing", new Option() {
+            @Override
+            public void run()  {
+                if (self.currentPlayer != null) self.currentPlayer.close();
+                self.currentPlayer = null;
+                self.currentThread = null;
+                self.currentFile = null;
+                self.isPlaying = false;
+            }
+
+            @Override
+            public boolean accept() {
+                return isPlaying;
+            }
+        });
+
+        this.options.defineOption("Show playlist", new Option() {
+            @Override
+            public void run() throws NoPlaylistException, UserAbortedException {
                 final var p1 = self.choosePlaylist();
                 p1.print();
             }
@@ -89,7 +121,7 @@ public class MusicPlayer {
 
         this.options.defineOption("Delete playlist", new Option() {
             @Override
-            public void run() throws NoPlaylistException, EmptyPlaylistException, UserAbortedException {
+            public void run() throws NoPlaylistException, UserAbortedException {
                 var p1 = self.choosePlaylist();
 
                 final String name = p1.getName();
@@ -106,7 +138,7 @@ public class MusicPlayer {
 
         this.options.defineOption("Add a song", new Option() {
             @Override
-            public void run() throws NoPlaylistException, EmptyPlaylistException, UserAbortedException {
+            public void run() throws NoPlaylistException, UserAbortedException {
                 var p1 = self.choosePlaylist();
 
                 final var title = OptionRunner.askString("Title");
@@ -198,7 +230,7 @@ public class MusicPlayer {
 
         this.options.defineOption("Sort a playlist", new Option() {
             @Override
-            public void run() throws NoPlaylistException, EmptyPlaylistException, UserAbortedException {
+            public void run() throws NoPlaylistException, UserAbortedException {
                 Playlist[] wrongPlaylists = self.playlists.values().stream().filter(p -> p.size() < 2).toArray(Playlist[]::new);
                 var p1 = self.choosePlaylist(wrongPlaylists);
 
@@ -207,17 +239,17 @@ public class MusicPlayer {
 
                 var choice = OptionRunner.askInt(MusicPlayer.SORT_OPTS.length + 1);
 
+                var reversed = OptionRunner.askBoolean("Sorting should be", new String[] { "ascending", "descending"});
 
-                //Todo: ascending and descending
                 switch (choice) {
                     case 1:
-                        p1.sortByTitle();
+                        p1.sortByTitle(reversed);
                         break;
                     case 2:
-                        p1.sortByAuthors();
+                        p1.sortByAuthors(reversed);
                         break;
                     case 3:
-                        p1.sortByYear();
+                        p1.sortByYear(reversed);
                         break;
                     case 4:
                         throw new UserAbortedException();
@@ -235,7 +267,7 @@ public class MusicPlayer {
 
         this.options.defineOption("Save playlist to a file", new Option() {
             @Override
-            public void run() throws NoPlaylistException, EmptyPlaylistException, UserAbortedException {
+            public void run() throws NoPlaylistException, UserAbortedException {
                 var p1 = self.choosePlaylist();
                 var songFile = new File(SAVE_DIR , p1.getName()+".csv");
                 if (!songFile.exists() || OptionRunner.askBoolean("Do you want to proceed? Save playlist with the same name already exists!")) {
@@ -255,14 +287,13 @@ public class MusicPlayer {
 
             @Override
             public boolean accept() {
-                File[] acceptableFiles = SAVE_DIR.listFiles(f -> !f.isDirectory() && f.getName().toUpperCase().endsWith(".CSV"));
-                return acceptableFiles != null && acceptableFiles.length > 0;
+                return !self.playlists.isEmpty() && self.playlists.values().stream().anyMatch(Playlist::hasSongs);
             }
         });
 
         this.options.defineOption("Load playlist from a file", new Option() {
             @Override
-            public void run() throws NoPlaylistException, EmptyPlaylistException, UserAbortedException {
+            public void run() throws NoPlaylistException, UserAbortedException {
                 File[] acceptableFiles = SAVE_DIR.listFiles(f -> !f.isDirectory() && f.getName().toUpperCase().endsWith(".CSV"));
                 if (acceptableFiles == null || acceptableFiles.length == 0) {
                     throw new NoPlaylistException(NO_PLAYLISTS_TO_LOAD);
@@ -292,7 +323,7 @@ public class MusicPlayer {
 
         this.options.defineOption("Delete playlist file", new Option() {
             @Override
-            public void run() throws NoPlaylistException, EmptyPlaylistException, UserAbortedException {
+            public void run() throws NoPlaylistException, UserAbortedException {
                 File[] acceptableFiles = SAVE_DIR.listFiles(f -> !f.isDirectory() && f.getName().toUpperCase().endsWith(".CSV"));
                 if (acceptableFiles == null || acceptableFiles .length == 0) {
                     throw new NoPlaylistException("There are no playlists available to delete!");
@@ -316,21 +347,6 @@ public class MusicPlayer {
                 return acceptableFiles != null && acceptableFiles.length > 0;
             }
         });
-
-        this.options.defineOption("Play a song", new Option() {
-            @Override
-            public void run() throws NoPlaylistException, EmptyPlaylistException, UserAbortedException {
-                var p1 = self.choosePlaylist();
-                int i = p1.chooseSongIndex();
-                var u = p1.getSong(i);
-                self.play(u);
-            }
-
-            @Override
-            public boolean accept() {
-                return !self.playlists.isEmpty() && self.playlists.values().stream().anyMatch(Playlist::hasSongs);
-            }
-        });
     }
 
     public void enable() {
@@ -347,11 +363,20 @@ public class MusicPlayer {
         if (this.currentPlayer != null) {
             this.currentPlayer.close();
             if (this.currentThread != null) {
-                this.currentThread = null;
+                try {
+                    this.currentThread.join();
+                } catch (InterruptedException e) {
+                    MusicPlayer.printYellow("Error joining thread!");
+                    Thread.currentThread().interrupt();
+                }
+                finally {
+                    this.currentThread = null;
+                }
             }
         }
         this.currentFile = u.getFile();
         this.currentThread = new Thread(this::playTarget);
+        this.isPlaying = true;
         this.currentThread.start();
         MusicPlayer.printGreen("Playing: " + u);
     }
@@ -362,9 +387,14 @@ public class MusicPlayer {
         ) {
             this.currentPlayer = new Player(buff);
             this.currentPlayer.play();
+
         } catch (JavaLayerException|IOException e) {
+            MusicPlayer.printYellow(e.getMessage());
             MusicPlayer.printYellow("Error playing!");
         }
+        this.currentPlayer = null;
+        this.currentThread = null;
+        this.isPlaying = false;
     }
     
 

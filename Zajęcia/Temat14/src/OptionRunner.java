@@ -36,7 +36,7 @@ public class OptionRunner {
 
             Option[] okOptions = printOptions(this.optionsMap);
 
-            final var choice = OptionRunner.askInt(okOptions.length);
+            final var choice = OptionRunner.askInt(okOptions.length + 1);
 
             if (choice == okOptions.length + 1) return;
 
@@ -56,7 +56,7 @@ public class OptionRunner {
         for (var i = 0; i < okEntries.length; i++) {
             sb.append("\t(").append(i + 1).append(") ").append(okEntries[i].getKey()).append('\n');
         }
-        sb.append("\t(").append(okEntries.length + 1).append(") ").append("\u001B[35mCANCEL\u001B[0m").append('\n');
+        sb.append("\t(").append(okEntries.length + 1).append(") ").append("\u001B[35mEXIT\u001B[0m").append('\n');
         System.out.print(sb);
 
         final var okOptions = new Option[okEntries.length];
@@ -104,15 +104,22 @@ public class OptionRunner {
         return x;
     }
 
+
     protected static boolean askBoolean(String k) {
-        k += " (tak/nie): ";
+        return askBoolean(k, BOOL_ANS);
+    }
+    protected static boolean askBoolean(String k, String[] ans) {
+        if (ans.length != 2) throw new IllegalArgumentException();
+        ans[0] = ans[0].toUpperCase();
+        ans[1] = ans[1].toUpperCase();
+        k += " (" + ans[0] +"/" + ans[1] + "): ";
         String x;
         while (true) {
             System.out.print(k);
             x = inScanner.nextLine().trim().toUpperCase();
-            if (BOOL_ANS[0].startsWith(x)) return true;
-            else if (BOOL_ANS[1].startsWith(x)) return false;
-            MusicPlayer.printYellow("You have to choose yes/no");
+            if (ans[0].startsWith(x)) return true;
+            else if (ans[1].startsWith(x)) return false;
+            MusicPlayer.printYellow("You have to choose " + ans[0] + '/' + ans[1] + '1');
         }
     }
 
@@ -139,9 +146,9 @@ public class OptionRunner {
 
     protected static File askMusicFile() {
         final var mainFrame = new Frame();
-        mainFrame.setOpacity(0f);
         final var dialog = new FileDialog(mainFrame, "Choose an music file");
         dialog.setModal(true);
+        dialog.setFile("*.mp3");
         mainFrame.setVisible(true);
         final var t = Taskbar.getTaskbar();
         t.requestWindowUserAttention(dialog);
