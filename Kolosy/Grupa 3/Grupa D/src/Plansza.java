@@ -62,7 +62,7 @@ public class Plansza {
     }
 
     private static void nieparzysteStatki() {
-        List<Statek> statkiNieparzyste = Arrays.asList(POLA).stream()
+        List<Statek> statkiNieparzyste = Arrays.stream(POLA)
         .filter(pole -> pole instanceof Statek && pole.getId() % 2 == 1)
         .collect(Collectors.toList());
 
