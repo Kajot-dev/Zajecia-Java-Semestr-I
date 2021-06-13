@@ -12,13 +12,22 @@ public class Playlist {
         try (
             final var sc = new Scanner(f)
         ) {
+            var errors = new LinkedHashMap<Integer, IllegalArgumentException>();
+            var i = 0;
             while (sc.hasNextLine()) {
                 String s = sc.nextLine();
                 if (s.isBlank()) continue;
-                this.addSong(Song.from(s));
+                i++;
+                try {
+                    this.addSong(Song.from(s));
+                } catch (IllegalArgumentException e) {
+                    errors.put(i, e);
+                }
             }
-        } catch (IllegalArgumentException e) {
-            throw new IOException();
+            if (this.songs.isEmpty()) throw new IOException("Corrupted playlist!");
+            for (var entry : errors.entrySet()) {
+                MusicPlayer.printYellow("There was a problem with " + entry.getKey() + "(st/nd/rd/th) Song: " + entry.getValue().getMessage());
+            }
         }
     }
 
@@ -44,6 +53,10 @@ public class Playlist {
 
     protected int chooseSongIndex() throws UserAbortedException, EmptyPlaylistException {
         if (this.songs.isEmpty()) throw new EmptyPlaylistException();
+        else if (this.songs.size() == 1) {
+            MusicPlayer.printGreen("Automatically chosen song: " + this.songs.get(0));
+            return 0;
+        }
         System.out.println(SONG_LIST);
         OptionRunner.printOptions(this.getSongList());
         var out = OptionRunner.askInt(this.songs.size() + 1);

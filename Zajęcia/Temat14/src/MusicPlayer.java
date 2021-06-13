@@ -13,16 +13,15 @@ import java.util.List;
 import javazoom.jl.decoder.JavaLayerException;
 import javazoom.jl.player.Player;
 
-//Todo: rename all names to EN
-//Todo: comments
-//Todo: merge multiplied accept methods
-//Todo: Playlists should still load when there are SOME missing files
-
 public class MusicPlayer {
 
+    //Playlists container
     private final HashMap<String, Playlist> playlists = new HashMap<>();
+    //This object is responsible for displaying menu
     private final OptionRunner options = new OptionRunner();
 
+
+    //All sorts of String constants
     private static final String[] SORT_OPTS = new String[] { "SORT BY TITLE", "SORT BY AUTHOR(S)",
             "SORT BY YEAR" };
     private static final String INTO_PLAYLIST = " into playlist ";
@@ -31,9 +30,10 @@ public class MusicPlayer {
     private static final String SPECIFY_TARGET_PLAYLIST = "Specify target playlist";
     private static final String NO_PLAYLISTS_TO_LOAD = "There are no playlists available for loading";
 
+    //Directory for saving csv files
     private static final File SAVE_DIR = new File("saved_playlists");
 
-
+    //Objects used for playing an music file
     private Thread currentThread = null;
     private Player currentPlayer = null;
     private File currentFile = null;
@@ -51,6 +51,7 @@ public class MusicPlayer {
         player.enable();
     }
 
+    //This just should print related error messages, nothing complicated
     protected static void errorHandler(Exception e) {
         if (e instanceof NoPlaylistException || e instanceof EmptyPlaylistException || e instanceof UserAbortedException) {
             MusicPlayer.printYellow(e.getMessage());
@@ -62,6 +63,9 @@ public class MusicPlayer {
     }
 
     public MusicPlayer() {
+
+        //we have to define local variable referencing current MusicPlayer
+        //because `this` keyword inside an Option implementation would reference to this Option and not to the MusicPlayer
         var self = this;
 
         this.options.defineOption("Play a song", new Option() {
@@ -104,7 +108,7 @@ public class MusicPlayer {
 
             @Override
             public boolean accept() {
-                return !self.playlists.isEmpty();
+                return self.thereIsAPlaylist();
             }
         });
 
@@ -132,7 +136,7 @@ public class MusicPlayer {
 
             @Override
             public boolean accept() {
-                return !self.playlists.isEmpty();
+                return self.thereIsAPlaylist();
             }
         });
 
@@ -159,7 +163,7 @@ public class MusicPlayer {
 
             @Override
             public boolean accept() {
-                return !self.playlists.isEmpty();
+                return self.thereIsAPlaylist();
             }
         });
 
@@ -239,7 +243,7 @@ public class MusicPlayer {
 
                 var choice = OptionRunner.askInt(MusicPlayer.SORT_OPTS.length + 1);
 
-                var reversed = OptionRunner.askBoolean("Sorting should be", new String[] { "ascending", "descending"});
+                var reversed = OptionRunner.askBoolean("Sorting should be", new String[] { "descending", "ascending"});
 
                 switch (choice) {
                     case 1:
@@ -299,9 +303,15 @@ public class MusicPlayer {
                     throw new NoPlaylistException(NO_PLAYLISTS_TO_LOAD);
                 }
                 final String[] fileNames = Arrays.stream(acceptableFiles).map(f -> f.getName().substring(0, f.getName().length() - 4)).toArray(String[]::new);
-                System.out.println(SPECIFY_SOURCE_PLAYLIST);
-                OptionRunner.printOptions(fileNames);
-                final var choice = OptionRunner.askInt(fileNames.length + 1);
+                final int choice;
+                if (fileNames.length == 1) {
+                    MusicPlayer.printGreen("Automatically chosen playlist: " + fileNames[0] + '!');
+                    choice = 1;
+                } else {
+                    System.out.println(SPECIFY_SOURCE_PLAYLIST);
+                    OptionRunner.printOptions(fileNames);
+                    choice = OptionRunner.askInt(fileNames.length + 1);
+                }
                 if (choice == fileNames.length + 1) throw new UserAbortedException();
                 if (!self.playlists.containsKey(fileNames[choice - 1]) || OptionRunner.askBoolean("Playlist with this name already exists. Do you want to overwrite it?")) {
                     try {
@@ -347,6 +357,14 @@ public class MusicPlayer {
                 return acceptableFiles != null && acceptableFiles.length > 0;
             }
         });
+
+        this.options.onMenuClose(() -> {
+            if (self.currentPlayer != null) self.currentPlayer.close();
+            self.currentPlayer = null;
+            self.currentThread = null;
+            self.currentFile = null;
+            self.isPlaying = false;
+        });
     }
 
     public void enable() {
@@ -354,6 +372,11 @@ public class MusicPlayer {
     }
 
     //Utils
+
+    private boolean thereIsAPlaylist() {
+        return !this.playlists.isEmpty();
+    }
+
 
 
     private void play(Song u) {
@@ -406,6 +429,11 @@ public class MusicPlayer {
         if (opts.isEmpty())
             throw new NoPlaylistException(); 
         String[] nameArr = opts.stream().map(Playlist::getName).toArray(String[]::new);
+        if (nameArr.length == 1) {
+            Playlist p = this.playlists.get(nameArr[0]);
+            MusicPlayer.printGreen("Automatically chosen playlist: " + p.getName() + '!');
+            return p;
+        }
         System.out.println("Choose playlist:");
         OptionRunner.printOptions(nameArr);
         final var c = OptionRunner.askInt(nameArr.length + 1);

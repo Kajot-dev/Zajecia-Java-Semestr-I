@@ -1,4 +1,3 @@
-
 import java.awt.*;
 import java.io.File;
 import java.util.*;
@@ -6,12 +5,14 @@ import java.util.*;
 public class OptionRunner {
     private static final  String CHOOSE_OPTION = "Choose an option:";
     private final LinkedHashMap<String, Option> optionsMap;
+    private final Set<Runnable> closeCallbacks;
 
     private static final Scanner inScanner = new Scanner(System.in);
     private static final String[] BOOL_ANS = new String[] { "YES", "NO" };
 
     protected OptionRunner() {
         this.optionsMap = new LinkedHashMap<>();
+        this.closeCallbacks = new HashSet<>();
     }
 
     protected void defineOption(String name, Option o) {
@@ -38,11 +39,20 @@ public class OptionRunner {
 
             final var choice = OptionRunner.askInt(okOptions.length + 1);
 
-            if (choice == okOptions.length + 1) return;
+            if (choice == okOptions.length + 1) {
+                for (var opt : this.closeCallbacks) {
+                    opt.run();
+                }
+                return;
+            }
 
             this.runOption(okOptions[choice-1]);
         }
 
+    }
+
+    protected void onMenuClose(Runnable r) {
+        this.closeCallbacks.add(r);
     }
 
     protected static Option[] printOptions(Map<String, Option> options) {
@@ -117,9 +127,9 @@ public class OptionRunner {
         while (true) {
             System.out.print(k);
             x = inScanner.nextLine().trim().toUpperCase();
-            if (ans[0].startsWith(x)) return true;
-            else if (ans[1].startsWith(x)) return false;
-            MusicPlayer.printYellow("You have to choose " + ans[0] + '/' + ans[1] + '1');
+            if (x.equals(ans[0]) || (ans[0].startsWith(x) && !ans[1].startsWith(x))) return true;
+            else if (x.equals(ans[1]) || (ans[1].startsWith(x) && !ans[0].startsWith(x))) return false;
+            MusicPlayer.printYellow("You have to choose \"" + ans[0] + "\" or \"" + ans[1] + "\"!");
         }
     }
 
