@@ -26,7 +26,7 @@ public class Playlist {
             }
             if (this.songs.isEmpty()) throw new IOException("Corrupted playlist!");
             for (var entry : errors.entrySet()) {
-                MusicPlayer.printYellow("There was a problem with " + entry.getKey() + "(st/nd/rd/th) Song: " + entry.getValue().getMessage());
+                MusicPlayer.printYellow("There was a problem with the " + entry.getKey() + Playlist.getNthOrdinal(entry.getKey()) + " song: " + entry.getValue().getMessage());
             }
         }
     }
@@ -134,5 +134,18 @@ public class Playlist {
             x /= 10;
         }
         return sum;
+    }
+
+    private static String getNthOrdinal(int n) {
+        switch (n % 10) {
+            case 1:
+                return "st";
+            case 2:
+                return "nd";
+            case 3:
+                return "rd";
+            default:
+                return "th";
+        }
     }
 }

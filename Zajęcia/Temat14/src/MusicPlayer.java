@@ -1,9 +1,6 @@
-import java.io.BufferedInputStream;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,7 +31,7 @@ public class MusicPlayer {
     private static final File SAVE_DIR = new File("saved_playlists");
 
     //Objects used for playing an music file
-    private Thread currentThread = null;
+    private Thread playerThread = null;
     private Player currentPlayer = null;
     private File currentFile = null;
     private boolean isPlaying = false;
@@ -52,7 +49,7 @@ public class MusicPlayer {
     }
 
     //This just should print related error messages, nothing complicated
-    protected static void errorHandler(Exception e) {
+    protected static ErrorHandler errorHandler = (current, e) -> {
         if (e instanceof NoPlaylistException || e instanceof EmptyPlaylistException || e instanceof UserAbortedException) {
             MusicPlayer.printYellow(e.getMessage());
         } else  {
@@ -60,13 +57,15 @@ public class MusicPlayer {
             e.printStackTrace();
             System.exit(-1);
         }
-    }
+    };
 
     public MusicPlayer() {
 
         //we have to define local variable referencing current MusicPlayer
-        //because `this` keyword inside an Option implementation would reference to this Option and not to the MusicPlayer
+        //because `this` keyword inside an Option implementation would reference to that Option and not to the MusicPlayer
         var self = this;
+
+        this.options.setDefaultHandler(MusicPlayer.errorHandler);
 
         this.options.defineOption("Play a song", new Option() {
             @Override
@@ -83,14 +82,30 @@ public class MusicPlayer {
             }
         });
 
+        this.options.defineOption("Play a song from URL", () -> {
+            try {
+                URL link = new URL(OptionRunner.askString("Specify full URL"));
+                self.play(link);
+            } catch (MalformedURLException e) {
+                MusicPlayer.printYellow("Invalid URL!");
+            }
+        });
+
         this.options.defineOption("Stop playing", new Option() {
             @Override
             public void run()  {
                 if (self.currentPlayer != null) self.currentPlayer.close();
-                self.currentPlayer = null;
-                self.currentThread = null;
-                self.currentFile = null;
-                self.isPlaying = false;
+                try {
+                    if (self.playerThread != null) self.playerThread.join();
+                } catch (InterruptedException e) {
+                    //do nothing
+                } finally {
+                    self.currentPlayer = null;
+                    self.playerThread = null;
+                    self.currentFile = null;
+                    self.isPlaying = false;
+                }
+
             }
 
             @Override
@@ -274,7 +289,7 @@ public class MusicPlayer {
             public void run() throws NoPlaylistException, UserAbortedException {
                 var p1 = self.choosePlaylist();
                 var songFile = new File(SAVE_DIR , p1.getName()+".csv");
-                if (!songFile.exists() || OptionRunner.askBoolean("Do you want to proceed? Save playlist with the same name already exists!")) {
+                if (!songFile.exists() || OptionRunner.askBoolean("Do you want to proceed? Playlist file with the same name already exists!")) {
                     try (
                             final var writer = new FileWriter(songFile);
                             final var buff = new BufferedWriter(writer)
@@ -282,7 +297,7 @@ public class MusicPlayer {
                         p1.serialise(buff);
                         MusicPlayer.printGreen("Saving playlist " + p1.getName() + " was successful!");
                     } catch (IOException e) {
-                        MusicPlayer.printYellow("Error saving playlist!");
+                        MusicPlayer.printYellow("Error saving playlist: " + e.getMessage());
                     }
                 } else {
                     throw new UserAbortedException();
@@ -305,7 +320,7 @@ public class MusicPlayer {
                 final String[] fileNames = Arrays.stream(acceptableFiles).map(f -> f.getName().substring(0, f.getName().length() - 4)).toArray(String[]::new);
                 final int choice;
                 if (fileNames.length == 1) {
-                    MusicPlayer.printGreen("Automatically chosen playlist: " + fileNames[0] + '!');
+                    MusicPlayer.printGreen("Automatically chosen file: " + fileNames[0] + '!');
                     choice = 1;
                 } else {
                     System.out.println(SPECIFY_SOURCE_PLAYLIST);
@@ -335,14 +350,21 @@ public class MusicPlayer {
             @Override
             public void run() throws NoPlaylistException, UserAbortedException {
                 File[] acceptableFiles = SAVE_DIR.listFiles(f -> !f.isDirectory() && f.getName().toUpperCase().endsWith(".CSV"));
-                if (acceptableFiles == null || acceptableFiles .length == 0) {
+                if (acceptableFiles == null || acceptableFiles.length == 0) {
                     throw new NoPlaylistException("There are no playlists available to delete!");
                 }
                 final String[] fileNames = Arrays.stream(acceptableFiles).map(f -> f.getName().substring(0, f.getName().length() - 4)).toArray(String[]::new);
-                System.out.println(SPECIFY_TARGET_PLAYLIST);
-                OptionRunner.printOptions(fileNames);
-                final var choice = OptionRunner.askInt(fileNames.length + 1);
-                if (choice == fileNames.length + 1) throw new UserAbortedException();
+                final int choice;
+                if (fileNames.length > 1) {
+                    System.out.println(SPECIFY_TARGET_PLAYLIST);
+                    OptionRunner.printOptions(fileNames);
+                    choice = OptionRunner.askInt(fileNames.length + 1);
+                    if (choice == fileNames.length + 1) throw new UserAbortedException();
+                } else {
+                    choice = 1;
+                    MusicPlayer.printGreen("Automatically chosen file: " + fileNames[0]);
+                }
+
                 try {
                     Files.delete(acceptableFiles[choice - 1].toPath());
                     MusicPlayer.printGreen("File deleted successfully");
@@ -361,7 +383,7 @@ public class MusicPlayer {
         this.options.onMenuClose(() -> {
             if (self.currentPlayer != null) self.currentPlayer.close();
             self.currentPlayer = null;
-            self.currentThread = null;
+            self.playerThread = null;
             self.currentFile = null;
             self.isPlaying = false;
         });
@@ -385,23 +407,58 @@ public class MusicPlayer {
         }
         if (this.currentPlayer != null) {
             this.currentPlayer.close();
-            if (this.currentThread != null) {
+            if (this.playerThread != null) {
                 try {
-                    this.currentThread.join();
+                    this.playerThread.join();
                 } catch (InterruptedException e) {
                     MusicPlayer.printYellow("Error joining thread!");
                     Thread.currentThread().interrupt();
                 }
                 finally {
-                    this.currentThread = null;
+                    this.playerThread = null;
                 }
             }
         }
         this.currentFile = u.getFile();
-        this.currentThread = new Thread(this::playTarget);
+        this.playerThread = new Thread(this::playTarget);
         this.isPlaying = true;
-        this.currentThread.start();
+        this.playerThread.start();
         MusicPlayer.printGreen("Playing: " + u);
+    }
+
+    private void play(URL link) {
+        if (this.currentPlayer != null) {
+            this.currentPlayer.close();
+            if (this.playerThread != null) {
+                try {
+                    this.playerThread.join();
+                } catch (InterruptedException e) {
+                    MusicPlayer.printYellow("Error joining thread!");
+                    Thread.currentThread().interrupt();
+                }
+                finally {
+                    this.playerThread = null;
+                    this.currentFile = null;
+                }
+            }
+        }
+        this.playerThread = new Thread(() -> {
+            try {
+                BufferedInputStream buff = new BufferedInputStream(link.openStream());
+                this.currentPlayer = new Player(buff);
+                this.currentPlayer.play();
+                this.currentPlayer.close();
+            } catch (IOException|JavaLayerException e) {
+                MusicPlayer.printYellow("Error playing from specified url: " + e.getMessage());
+            } finally {
+                this.currentPlayer = null;
+                this.playerThread = null;
+                this.isPlaying = false;
+            }
+        });
+        this.isPlaying = true;
+        this.playerThread.start();
+        MusicPlayer.printGreen("Trying to play song from a specified url...");
     }
 
     private void playTarget() {
@@ -410,14 +467,15 @@ public class MusicPlayer {
         ) {
             this.currentPlayer = new Player(buff);
             this.currentPlayer.play();
-
+            this.currentPlayer.close();
         } catch (JavaLayerException|IOException e) {
             MusicPlayer.printYellow(e.getMessage());
             MusicPlayer.printYellow("Error playing!");
+        } finally {
+            this.currentPlayer = null;
+            this.playerThread = null;
+            this.isPlaying = false;
         }
-        this.currentPlayer = null;
-        this.currentThread = null;
-        this.isPlaying = false;
     }
     
 

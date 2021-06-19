@@ -7,6 +7,19 @@ public class OptionRunner {
     private final LinkedHashMap<String, Option> optionsMap;
     private final Set<Runnable> closeCallbacks;
 
+    public void setDefaultHandler(ErrorHandler defaultHandler) {
+        this.defaultHandler = defaultHandler;
+    }
+
+    private ErrorHandler defaultHandler = null;
+    protected static final ErrorHandler errHandler = (current, e) -> {
+        if (current.defaultHandler != null) current.defaultHandler.handle(current, e);
+        else {
+            e.printStackTrace();
+            System.err.println(e.getMessage());
+        }
+    };
+
     private static final Scanner inScanner = new Scanner(System.in);
     private static final String[] BOOL_ANS = new String[] { "YES", "NO" };
 
@@ -24,7 +37,7 @@ public class OptionRunner {
             try {
                 opt.run();
             } catch (Exception e) {
-                opt.onError(e);
+                opt.onError(this, e);
             }
 
         } else throw new NoSuchElementException("This option does not exist!");
