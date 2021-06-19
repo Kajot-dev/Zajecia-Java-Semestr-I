@@ -98,7 +98,7 @@ public class MusicPlayer {
                 try {
                     if (self.playerThread != null) self.playerThread.join();
                 } catch (InterruptedException e) {
-                    //do nothing
+                    self.playerThread.interrupt();
                 } finally {
                     self.currentPlayer = null;
                     self.playerThread = null;
@@ -443,8 +443,9 @@ public class MusicPlayer {
             }
         }
         this.playerThread = new Thread(() -> {
-            try {
+            try (
                 BufferedInputStream buff = new BufferedInputStream(link.openStream());
+            ) {    
                 this.currentPlayer = new Player(buff);
                 this.currentPlayer.play();
                 this.currentPlayer.close();
